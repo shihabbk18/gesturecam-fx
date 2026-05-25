@@ -1,0 +1,303 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #050607;
+  color: #f8fbff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+.cameraApp {
+  position: fixed;
+  inset: 0;
+  background: #050607;
+}
+
+.hiddenVideo {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cameraCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  background: #050607;
+}
+
+.hud {
+  position: fixed;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.topHud {
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.brandMark,
+.statusPill,
+.metricPill,
+.controlPanel,
+.confidencePanel,
+.gestureCard {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(5, 7, 9, 0.58);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(16px);
+}
+
+.brandMark {
+  gap: 10px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.statusPill {
+  gap: 9px;
+  min-height: 44px;
+  max-width: min(560px, 60vw);
+  padding: 0 14px;
+  border-radius: 8px;
+  color: #dcf9ff;
+}
+
+.topCluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.metricPill {
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.controlPanel {
+  pointer-events: auto;
+  top: 76px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  max-width: calc(100vw - 36px);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.controlPanel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(248, 251, 255, 0.82);
+}
+
+.controlPanel select {
+  width: min(210px, 28vw);
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(3, 5, 7, 0.8);
+  color: #ffffff;
+  padding: 0 8px;
+}
+
+.controlPanel input[type="range"] {
+  width: 112px;
+  accent-color: #5beacd;
+}
+
+.controlPanel button {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(3, 5, 7, 0.72);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.confidencePanel {
+  left: 18px;
+  top: 76px;
+  width: min(280px, calc(100vw - 36px));
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.confidenceHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.confidenceHeader strong {
+  margin-left: auto;
+}
+
+.confidenceTrack {
+  height: 9px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.confidenceTrack div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #5beacd, #f5d56b);
+}
+
+.historyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: rgba(248, 251, 255, 0.72);
+  font-size: 0.78rem;
+}
+
+.historyList span {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gestureDock {
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(118px, 1fr));
+  gap: 10px;
+  width: min(680px, calc(100vw - 28px));
+}
+
+.startButton {
+  position: fixed;
+  z-index: 8;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 190px;
+  height: 54px;
+  border: 1px solid rgba(91, 234, 205, 0.86);
+  border-radius: 8px;
+  background: rgba(20, 73, 72, 0.88);
+  color: #ffffff;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.36);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.gestureCard {
+  min-height: 72px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  color: rgba(248, 251, 255, 0.7);
+}
+
+.gestureCard span {
+  font-size: 0.8rem;
+}
+
+.gestureCard strong {
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.gestureCard.active {
+  border-color: rgba(91, 234, 205, 0.9);
+  background: rgba(20, 73, 72, 0.72);
+  color: #dffff8;
+}
+
+@media (max-width: 720px) {
+  .topHud {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topCluster {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .statusPill {
+    max-width: 100%;
+  }
+
+  .controlPanel {
+    top: auto;
+    right: 14px;
+    left: 14px;
+    bottom: 226px;
+    flex-wrap: wrap;
+  }
+
+  .controlPanel select {
+    width: 150px;
+  }
+
+  .confidencePanel {
+    top: 134px;
+    left: 14px;
+  }
+
+  .gestureDock {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
