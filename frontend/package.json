@@ -14,10 +14,11 @@
     "@mediapipe/camera_utils": "latest",
     "@mediapipe/hands": "latest",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
+    "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest"
+    "three": "^0.185.1",
+    "vite": "latest"
   },
   "devDependencies": {
     "eslint": "latest",

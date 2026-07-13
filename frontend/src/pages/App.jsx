@@ -19,11 +19,11 @@ import {
 import {
   MODEL_LIBRARY,
   drawFrame,
-  handPoint,
   isPinching,
   normalizeBox,
   sizeCanvas,
 } from "../lib/scene.js";
+import { createThreePortal } from "../lib/three-portal.js";
 
 const SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
 const ASSET_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/hands";
@@ -31,6 +31,8 @@ const ASSET_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/hands";
 export function App() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const threeCanvasRef = useRef(null);
+  const threePortalRef = useRef(null);
   const handsEngineRef = useRef(null);
   const streamRef = useRef(null);
   const frameBusyRef = useRef(false);
@@ -48,7 +50,7 @@ export function App() {
   const gestureRef = useRef({
     leftPinch: false,
     rightPinch: false,
-    leftStart: null,
+    lastLeftTrigger: 0,
     lastRightTrigger: 0,
   });
 
@@ -82,6 +84,7 @@ export function App() {
     let stopped = false;
     let frameCount = 0;
     let lastFpsTime = performance.now();
+    threePortalRef.current = createThreePortal(threeCanvasRef.current);
 
     function render(time) {
       const canvas = canvasRef.current;
@@ -96,6 +99,13 @@ export function App() {
         trackedHandsRef.current,
         time,
       );
+      threePortalRef.current?.render({
+        box: sceneRef.current.box,
+        modelIndex: sceneRef.current.modelIndex,
+        time,
+        width: dimensions.width,
+        height: dimensions.height,
+      });
 
       const video = videoRef.current;
       if (
@@ -130,6 +140,8 @@ export function App() {
       cancelAnimationFrame(animationFrame);
       handsEngineRef.current?.close?.();
       streamRef.current?.getTracks?.().forEach((track) => track.stop());
+      threePortalRef.current?.dispose();
+      threePortalRef.current = null;
     };
   }, []);
 
@@ -193,7 +205,7 @@ export function App() {
       startedRef.current = true;
       setStarted(true);
       resetPortal();
-      setStatus("Show both hands — left draws, right changes the model");
+      setStatus("One left pinch creates the portal — right pinch transforms");
     } catch (error) {
       startedRef.current = false;
       setStarted(false);
@@ -217,9 +229,10 @@ export function App() {
       height: Math.min(height * 0.5, 470),
     };
     sceneRef.current = { ...sceneRef.current, box, draft: null, modelIndex: 0, modelChangedAt: performance.now() };
+    threePortalRef.current?.setModel(0, true);
     setModelIndex(0);
     setPortalReady(true);
-    setStatus("Demo mode — drag a new portal or press Space to transform");
+    setStatus("Demo mode — click for a smart portal or press Space to transform");
   }
 
   function handleHandResults(results) {
@@ -248,30 +261,48 @@ export function App() {
     setRightPinching(rightIsPinching);
 
     const gesture = gestureRef.current;
-    if (left && leftIsPinching) {
-      const point = handPoint(left.landmarks[8], window.innerWidth, window.innerHeight);
-      if (!gesture.leftPinch) gesture.leftStart = point;
-      if (gesture.leftStart) sceneRef.current.draft = normalizeBox(gesture.leftStart, point);
-    } else if (gesture.leftPinch) {
-      commitDraft();
-      gesture.leftStart = null;
+    const now = performance.now();
+    if (leftIsPinching && !gesture.leftPinch && now - gesture.lastLeftTrigger > 850) {
+      gesture.lastLeftTrigger = now;
+      createSmartPortal();
     }
     gesture.leftPinch = leftIsPinching;
 
-    const now = performance.now();
     if (rightIsPinching && !gesture.rightPinch && now - gesture.lastRightTrigger > 720) {
       gesture.lastRightTrigger = now;
       if (sceneRef.current.box) cycleModel();
-      else setStatus("Draw the portal first: left-hand pinch, drag, and release");
+      else setStatus("Pinch once with your left hand to create the smart portal");
     }
     gesture.rightPinch = rightIsPinching;
+  }
+
+  function createSmartPortal(anchor) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const width = Math.min(620, Math.max(280, viewportWidth * 0.46));
+    const height = Math.min(470, Math.max(220, viewportHeight * 0.52));
+    const centerX = anchor?.x ?? viewportWidth / 2;
+    const centerY = anchor?.y ?? viewportHeight / 2;
+    const x = Math.max(16, Math.min(centerX - width / 2, viewportWidth - width - 16));
+    const y = Math.max(92, Math.min(centerY - height / 2, viewportHeight - height - 92));
+    sceneRef.current = {
+      ...sceneRef.current,
+      box: { x, y, width, height },
+      draft: null,
+      modelIndex: 0,
+      modelChangedAt: performance.now(),
+    };
+    threePortalRef.current?.setModel(0, true);
+    setModelIndex(0);
+    setPortalReady(true);
+    setStatus("Smart portal created — right pinch to trigger the cinematic exit");
   }
 
   function commitDraft() {
     const draft = sceneRef.current.draft;
     sceneRef.current.draft = null;
-    if (!draft || draft.width < 120 || draft.height < 90) {
-      setStatus("Make the portal larger — drag at least 120 × 90 pixels");
+    if (!draft || draft.width < 90 || draft.height < 70) {
+      setStatus("Make the custom portal a little larger — or simply click once");
       return;
     }
     const padding = 12;
@@ -288,9 +319,10 @@ export function App() {
       modelIndex: 0,
       modelChangedAt: performance.now(),
     };
+    threePortalRef.current?.setModel(0, true);
     setModelIndex(0);
     setPortalReady(true);
-    setStatus("Portal locked — pinch with your right hand to transform it");
+    setStatus("Portal locked — right pinch to launch the current 3D model");
   }
 
   function cycleModel() {
@@ -301,8 +333,9 @@ export function App() {
     const next = (sceneRef.current.modelIndex + 1) % MODEL_LIBRARY.length;
     sceneRef.current.modelIndex = next;
     sceneRef.current.modelChangedAt = performance.now();
+    threePortalRef.current?.setModel(next);
     setModelIndex(next);
-    setStatus(`${MODEL_LIBRARY[next].name} materialized`);
+    setStatus(`${MODEL_LIBRARY[next].name} incoming — cinematic exit engaged`);
   }
 
   function chooseModel(index) {
@@ -312,16 +345,17 @@ export function App() {
     }
     sceneRef.current.modelIndex = index;
     sceneRef.current.modelChangedAt = performance.now();
+    threePortalRef.current?.setModel(index);
     setModelIndex(index);
-    setStatus(`${MODEL_LIBRARY[index].name} materialized`);
+    setStatus(`${MODEL_LIBRARY[index].name} incoming — cinematic exit engaged`);
   }
 
   function resetPortal() {
     sceneRef.current = { ...sceneRef.current, box: null, draft: null, modelIndex: 0, modelChangedAt: performance.now() };
-    gestureRef.current.leftStart = null;
+    threePortalRef.current?.reset();
     setModelIndex(0);
     setPortalReady(false);
-    if (startedRef.current) setStatus("Portal cleared — draw a new box with your left hand");
+    if (startedRef.current) setStatus("Portal cleared — one left pinch creates another");
   }
 
   function onPointerDown(event) {
@@ -340,8 +374,14 @@ export function App() {
   function onPointerUp(event) {
     if (!pointerStartRef.current) return;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
+    const draft = sceneRef.current.draft;
     pointerStartRef.current = null;
-    commitDraft();
+    if (!draft || draft.width < 45 || draft.height < 45) {
+      sceneRef.current.draft = null;
+      createSmartPortal({ x: event.clientX, y: event.clientY });
+    } else {
+      commitDraft();
+    }
   }
 
   async function refreshDevices() {
@@ -353,7 +393,16 @@ export function App() {
   }
 
   function downloadScreenshot() {
-    canvasRef.current?.toBlob((blob) => {
+    const background = canvasRef.current;
+    const webgl = threeCanvasRef.current;
+    if (!background || !webgl) return;
+    const composite = document.createElement("canvas");
+    composite.width = background.width;
+    composite.height = background.height;
+    const context = composite.getContext("2d");
+    context.drawImage(background, 0, 0);
+    context.drawImage(webgl, 0, 0, composite.width, composite.height);
+    composite.toBlob((blob) => {
       if (!blob) return;
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
@@ -383,8 +432,9 @@ export function App() {
           event.preventDefault();
           cycleModel();
         }}
-        aria-label="Interactive camera stage. Drag to draw a portal; right-click to switch the object."
+        aria-label="Interactive camera stage. Click for a smart portal, drag for a custom portal, and right-click to switch the object."
       />
+      <canvas ref={threeCanvasRef} className="threeCanvas" aria-hidden="true" />
 
       <header className="topBar">
         <a className="brand" href="https://github.com/shihabbk18/gesturecam-fx" target="_blank" rel="noreferrer">
@@ -406,12 +456,12 @@ export function App() {
         <>
           <aside className="gestureGuide leftGuide">
             <div className={leftTracked ? "handBadge tracked" : "handBadge"}><Hand size={18} /><span>L</span></div>
-            <div><small>LEFT HAND</small><strong>{leftPinching ? "DRAWING PORTAL" : "PINCH + DRAG"}</strong><p>Pinch thumb and index. Drag corner to corner, then release.</p></div>
+            <div><small>LEFT HAND</small><strong>{leftPinching ? "CREATING PORTAL" : "PINCH ONCE"}</strong><p>One pinch creates a centered, laptop-friendly portal instantly.</p></div>
           </aside>
 
           <aside className="gestureGuide rightGuide">
             <div className={rightTracked ? "handBadge right tracked" : "handBadge right"}><Sparkles size={18} /><span>R</span></div>
-            <div><small>RIGHT HAND</small><strong>{rightPinching ? "TRANSFORMING" : "PINCH TO SWITCH"}</strong><p>One clean pinch changes the object inside your portal.</p></div>
+            <div><small>RIGHT HAND</small><strong>{rightPinching ? "TRANSFORMING" : "PINCH TO SWITCH"}</strong><p>Each object performs its own exit, dissolves to dust, then transforms.</p></div>
           </aside>
 
           <nav className="modelDock" aria-label="Portal models">
@@ -449,7 +499,7 @@ export function App() {
             <button type="button" onClick={() => setShowGuide(true)} title="Show help"><HelpCircle size={17} /></button>
           </div>
 
-          {!portalReady && <div className="portalPrompt"><span>01</span><p>CREATE THE PORTAL</p><strong>LEFT PINCH + DRAG</strong></div>}
+          {!portalReady && <div className="portalPrompt"><span>01</span><p>CREATE THE SMART PORTAL</p><strong>LEFT PINCH ONCE</strong></div>}
         </>
       )}
 
@@ -457,7 +507,7 @@ export function App() {
         <section className="launchScreen">
           <div className="launchEyebrow"><ScanFace size={17} /><span>AI HAND TRACKING / 21 LANDMARKS × 2</span></div>
           <h1>DRAW A PORTAL.<br /><em>SUMMON THE IMPOSSIBLE.</em></h1>
-          <p>Use your left hand to create a box in the air. Use your right hand to transform what lives inside it.</p>
+          <p>One left-hand pinch creates the portal. A right-hand pinch launches each 3D object in its own way before it dissolves into dust.</p>
           <div className="launchActions">
             <button type="button" className="primaryAction" onClick={startCamera}><Camera size={20} /><span>START CAMERA</span><ChevronRight size={18} /></button>
             <button type="button" className="secondaryAction" onClick={startDemo}><MousePointer2 size={18} /><span>TRY MOUSE DEMO</span></button>
@@ -475,9 +525,9 @@ export function App() {
           <span className="guideStep">QUICK START / 30 SECONDS</span>
           <h2 id="guide-title">YOUR HANDS ARE THE INTERFACE.</h2>
           <div className="guideSteps">
-            <article><span>01</span><Hand size={24} /><strong>DRAW WITH LEFT</strong><p>Pinch thumb and index at one corner, drag diagonally, then release.</p></article>
-            <article><span>02</span><Sparkles size={24} /><strong>SWITCH WITH RIGHT</strong><p>Make a fresh right-hand pinch each time you want a new creature or object.</p></article>
-            <article><span>03</span><MousePointer2 size={24} /><strong>FALLBACK CONTROLS</strong><p>Drag with the mouse to draw. Right-click or press Space to transform. Press R to reset.</p></article>
+            <article><span>01</span><Hand size={24} /><strong>PINCH ONCE WITH LEFT</strong><p>The portal is automatically centered and sized, so no difficult air drawing is needed.</p></article>
+            <article><span>02</span><Sparkles size={24} /><strong>LAUNCH WITH RIGHT</strong><p>The car races, butterfly flies, spider crawls, and every model gets a custom dust exit.</p></article>
+            <article><span>03</span><MousePointer2 size={24} /><strong>FALLBACK CONTROLS</strong><p>Click for a smart portal or drag a custom one. Right-click or press Space to transform.</p></article>
           </div>
           <button className="enterLab" type="button" onClick={() => setShowGuide(false)}>ENTER THE LAB <ChevronRight size={17} /></button>
         </section>

@@ -4,6 +4,11 @@ export const MODEL_LIBRARY = [
   { id: "car", name: "Neon Roadster", short: "NEON CAR", color: "#a679ff" },
   { id: "flower", name: "Solar Bloom", short: "FLOWER", color: "#ffd760" },
   { id: "planet", name: "Orbit Planet", short: "PLANET", color: "#59bdff" },
+  { id: "rocket", name: "Nova Rocket", short: "ROCKET", color: "#ff8a5c" },
+  { id: "jellyfish", name: "Aqua Jelly", short: "JELLYFISH", color: "#59f3ff" },
+  { id: "robot", name: "Metro Bot", short: "ROBOT", color: "#b6ff67" },
+  { id: "crystal", name: "Void Crystal", short: "CRYSTAL", color: "#d879ff" },
+  { id: "ufo", name: "Pulse Saucer", short: "UFO", color: "#78a7ff" },
 ];
 
 export function sizeCanvas(canvas) {
@@ -194,8 +199,6 @@ function drawPortal(context, scene, time) {
   context.fillStyle = interior;
   context.fillRect(box.x, box.y, box.width, box.height);
   drawPortalGrid(context, box, color, time);
-  drawModel(context, model.id, box, color, time, scene.modelChangedAt);
-  drawEnergyParticles(context, box, color, time, scene.modelChangedAt);
   context.restore();
 
   drawCorners(context, box, color, Math.min(26, Math.min(box.width, box.height) * 0.13), 4);

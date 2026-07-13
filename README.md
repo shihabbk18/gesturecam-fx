@@ -1,6 +1,6 @@
 # GestureCam FX — AI Portal Lab
 
-GestureCam FX is a real-time augmented-reality hand-gesture experience. Pinch with your left hand and drag through the air to draw a portal. Each new right-hand pinch transforms the animated model inside it.
+GestureCam FX is a real-time augmented-reality hand-gesture experience. One left-hand pinch creates a smart, automatically sized portal. Each new right-hand pinch gives the current 3D model its own cinematic exit, dissolves it into particles, and materializes the next one.
 
 ![GestureCam FX AI Portal Lab](docs/gesturecam-portal.png)
 
@@ -9,9 +9,9 @@ GestureCam FX is a real-time augmented-reality hand-gesture experience. Pinch wi
 ## The experience
 
 1. Start the camera and allow browser camera access.
-2. Hold your left thumb and index finger together.
-3. Drag diagonally from one corner to the opposite corner, then release.
-4. Pinch once with your right hand to cycle the model.
+2. Pinch your left thumb and index finger once to create the portal.
+3. Pinch once with your right hand to launch the current model and cycle to the next.
+4. Repeat the right-hand pinch to explore all ten models.
 
 The model sequence is:
 
@@ -20,14 +20,21 @@ The model sequence is:
 - Neon Roadster
 - Solar Bloom
 - Orbit Planet
+- Nova Rocket
+- Aqua Jelly
+- Metro Bot
+- Void Crystal
+- Pulse Saucer
 
 ## Features
 
 - Two-hand tracking with 21 MediaPipe landmarks per hand
 - Normalized pinch detection that adapts to hand distance
-- Left-hand air drawing and right-hand transformation gestures
-- Five original, procedurally animated canvas models
-- Neon portal effects, particles, scanner, and hand skeleton overlays
+- One-pinch smart portal creation plus optional custom pointer drawing
+- Ten original, procedurally built Three.js models
+- Model-specific exits: the car races, butterfly flies, spider crawls, rocket launches, UFO warps, and more
+- Cinematic particle disintegration and rematerialization transitions
+- Neon portal effects, scanner, and hand skeleton overlays
 - Camera selector, screenshot capture, fullscreen, and hand-label swap
 - Mouse and keyboard fallbacks for visitors without camera access
 - Responsive HUD for desktop and mobile
@@ -37,7 +44,8 @@ The model sequence is:
 
 | Control | Action |
 | --- | --- |
-| Mouse/touch drag | Draw a portal |
+| Mouse/touch click | Create a smart portal |
+| Mouse/touch drag | Draw a custom portal |
 | Right-click | Show the next model |
 | Space / Right Arrow | Show the next model |
 | R | Clear the portal |
@@ -66,10 +74,11 @@ The production site is generated in `frontend/dist`. The included GitHub Actions
 
 - React + Vite
 - MediaPipe Hands
-- Canvas 2D procedural animation
+- Three.js + WebGL procedural 3D
+- Canvas 2D camera and HUD rendering
 - Lucide React icons
 - GitHub Pages
 
 ## Architecture
 
-The live experience is frontend-only. `App.jsx` manages camera access, gesture state, pointer controls, and the HUD. `scene.js` handles hand math, portal rendering, particles, and all animated model drawing. The older FastAPI scaffold remains in the repository as historical project context but is not needed by the portal lab.
+The live experience is frontend-only. `App.jsx` manages camera access, gesture state, pointer controls, and the HUD. `scene.js` handles hand math and the camera/portal overlay. `three-portal.js` builds and animates the 3D collection, per-model exits, particle disintegration, and WebGL rendering. The older FastAPI scaffold remains in the repository as historical project context but is not needed by the portal lab.
