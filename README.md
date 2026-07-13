@@ -1,89 +1,73 @@
-# GestureCam FX
+# GestureCam FX — AI Portal Lab
 
-GestureCam FX is a fullscreen webcam experience that uses MediaPipe Hands to track 21 hand landmarks, detect live gestures, and map each gesture to a visual filter on the camera feed.
+GestureCam FX is a real-time augmented-reality hand-gesture experience. Pinch with your left hand and drag through the air to draw a portal. Each new right-hand pinch transforms the animated model inside it.
 
-![GestureCam FX interface](docs/gesturecam-ui.png)
+![GestureCam FX AI Portal Lab](docs/gesturecam-portal.png)
+
+## The experience
+
+1. Start the camera and allow browser camera access.
+2. Hold your left thumb and index finger together.
+3. Drag diagonally from one corner to the opposite corner, then release.
+4. Pinch once with your right hand to cycle the model.
+
+The model sequence is:
+
+- Prism Butterfly
+- Cyber Spider
+- Neon Roadster
+- Solar Bloom
+- Orbit Planet
 
 ## Features
 
-- Fullscreen webcam canvas with mirrored preview
-- MediaPipe Hands landmark tracking
-- White dot on the index fingertip
-- Gesture detection from 21 landmarks
-- Live visual filters mapped to gestures
-- Camera selector for multiple webcams
-- Filter intensity slider
-- Fingertip dot toggle
-- Screenshot download
-- Fullscreen button
-- FPS monitor
-- Gesture confidence meter
-- Recent gesture history
-- Mobile-friendly HUD layout
+- Two-hand tracking with 21 MediaPipe landmarks per hand
+- Normalized pinch detection that adapts to hand distance
+- Left-hand air drawing and right-hand transformation gestures
+- Five original, procedurally animated canvas models
+- Neon portal effects, particles, scanner, and hand skeleton overlays
+- Camera selector, screenshot capture, fullscreen, and hand-label swap
+- Mouse and keyboard fallbacks for visitors without camera access
+- Responsive HUD for desktop and mobile
+- Camera frames remain inside the browser and are never uploaded
 
-## Gesture Map
+## Fallback controls
 
-| Gesture | Filter |
+| Control | Action |
 | --- | --- |
-| Fist | Dither |
-| Peace sign | VHS with chromatic aberration |
-| Pointing index finger | Spotlight |
-| Open hand | Water ripple |
+| Mouse/touch drag | Draw a portal |
+| Right-click | Show the next model |
+| Space / Right Arrow | Show the next model |
+| R | Clear the portal |
+| F | Toggle fullscreen |
 
-## Tech Stack
-
-- React + Vite
-- MediaPipe Hands
-- Canvas 2D rendering
-- Lucide React icons
-- CSS responsive HUD
-
-The repository also still contains the FastAPI backend scaffold from the earlier AI detector version, but the webcam gesture app runs from the frontend only.
-
-## Run Locally
-
-Install and start the frontend:
+## Run locally
 
 ```powershell
-cd "C:\Users\NuRuL AzAm\Documents\SHIHAB\frontend"
+cd frontend
 npm install
 npm run dev
 ```
 
-Open:
+Open the local URL printed by Vite, click **Start camera**, and grant camera access. Chrome or Edge is recommended for the smoothest webcam experience.
 
-```text
-http://localhost:5173/
+## Build
+
+```powershell
+cd frontend
+npm run build
 ```
 
-Click **Start camera**, allow camera permission, and press `F11` for browser fullscreen.
+The production site is generated in `frontend/dist`. A GitHub Pages workflow is included in `.github/workflows/deploy-pages.yml`.
 
-## Troubleshooting
+## Tech stack
 
-If the page is black:
+- React + Vite
+- MediaPipe Hands
+- Canvas 2D procedural animation
+- Lucide React icons
+- GitHub Pages
 
-- Refresh the page and click **Start camera** again.
-- Check browser camera permission for `localhost:5173`.
-- Try Chrome or Edge if the in-app browser blocks camera access.
-- Use the camera selector if your laptop has multiple camera devices.
+## Architecture
 
-If camera permission was blocked:
-
-```text
-Chrome/Edge Settings > Privacy and security > Site settings > Camera
-```
-
-Set `localhost:5173` to **Allow**.
-
-## How It Works
-
-MediaPipe returns 21 hand landmarks. The app checks finger extension states using landmark positions, estimates gesture confidence from finger spread and landmark distances, then draws the webcam frame and active effect to a fullscreen canvas. The index fingertip dot is drawn from landmark `8`.
-
-## Portfolio Upgrade Ideas
-
-- Add two-hand gestures
-- Add a TensorFlow.js gesture classifier
-- Add video recording
-- Add filter presets
-- Add a landmark debug overlay
-- Add WebGL shader filters for higher performance
+The live experience is frontend-only. `App.jsx` manages camera access, gesture state, pointer controls, and the HUD. `scene.js` handles hand math, portal rendering, particles, and all animated model drawing. The older FastAPI scaffold remains in the repository as historical project context but is not needed by the portal lab.
