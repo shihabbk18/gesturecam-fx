@@ -4,7 +4,7 @@ GestureCam FX is a real-time augmented-reality hand-gesture experience. One left
 
 ![GestureCam FX AI Portal Lab](docs/gesturecam-portal.png)
 
-**[Launch the live experience](https://shihabbk18.github.io/gesturecam-fx/)**
+**[Launch the live experience](https://shihabbk18.github.io/PORTFOLIO-/gesturecam-fx/)**
 
 ## The experience
 
