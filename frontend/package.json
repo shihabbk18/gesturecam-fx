@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy:check": "vite build",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@mediapipe/camera_utils": "latest",
@@ -23,6 +24,9 @@
   "devDependencies": {
     "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
-    "eslint-plugin-react-refresh": "latest"
+    "eslint-plugin-react-refresh": "latest",
+    "globals": "^17.13.0",
+    "jsdom": "^30.1.3",
+    "vitest": "^5.0.5"
   }
 }

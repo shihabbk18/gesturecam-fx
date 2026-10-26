@@ -53,6 +53,8 @@ The model sequence is:
 
 ## Run locally
 
+Use Node.js 24 or newer.
+
 ```powershell
 cd frontend
 npm install
@@ -69,6 +71,18 @@ npm run build
 ```
 
 The production site is generated in `frontend/dist`. The included GitHub Actions workflow verifies every production build, while the live demo is served from the portfolio site.
+
+## Verify changes
+
+```powershell
+cd frontend
+npm ci
+npm run lint
+npm test
+npm run build
+```
+
+Regression tests cover camera selection, permission and playback failures, cancellation when entering demo mode or leaving the page, and retrying failed or stalled tracker downloads. Physical webcam tracking still requires a browser with camera permission. Select a camera from the controls to switch the active stream.
 
 ## Tech stack
 

@@ -9,7 +9,6 @@ import {
   HelpCircle,
   Maximize2,
   MousePointer2,
-  Play,
   RefreshCw,
   ScanFace,
   Sparkles,
@@ -24,9 +23,7 @@ import {
   sizeCanvas,
 } from "../lib/scene.js";
 import { createThreePortal } from "../lib/three-portal.js";
-
-const SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js";
-const ASSET_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/hands";
+import { ASSET_URL, loadMediaPipe } from "../lib/mediapipe.js";
 
 export function App() {
   const videoRef = useRef(null);
@@ -36,6 +33,8 @@ export function App() {
   const handsEngineRef = useRef(null);
   const streamRef = useRef(null);
   const frameBusyRef = useRef(false);
+  const pendingFrameRef = useRef(Promise.resolve());
+  const cameraRequestRef = useRef(0);
   const startedRef = useRef(false);
   const demoRef = useRef(false);
   const trackedHandsRef = useRef([]);
@@ -55,6 +54,7 @@ export function App() {
   });
 
   const [started, setStarted] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [status, setStatus] = useState("Ready to enter the gesture lab");
   const [modelIndex, setModelIndex] = useState(0);
@@ -116,9 +116,12 @@ export function App() {
         !frameBusyRef.current
       ) {
         frameBusyRef.current = true;
-        handsEngineRef.current
+        const engine = handsEngineRef.current;
+        pendingFrameRef.current = engine
           .send({ image: video })
-          .catch(() => setStatus("Hand tracking paused — try restarting the camera"))
+          .catch(() => {
+            if (handsEngineRef.current === engine) setStatus("Hand tracking paused — try restarting the camera");
+          })
           .finally(() => {
             frameBusyRef.current = false;
           });
@@ -138,8 +141,8 @@ export function App() {
     return () => {
       stopped = true;
       cancelAnimationFrame(animationFrame);
-      handsEngineRef.current?.close?.();
-      streamRef.current?.getTracks?.().forEach((track) => track.stop());
+      cameraRequestRef.current += 1;
+      releaseCamera();
       threePortalRef.current?.dispose();
       threePortalRef.current = null;
     };
@@ -159,16 +162,34 @@ export function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   });
 
-  async function startCamera() {
+  function releaseCamera() {
+    startedRef.current = false;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    const engine = handsEngineRef.current;
+    handsEngineRef.current = null;
+    // MediaPipe must finish its current send before closing its WASM resources.
+    const closing = pendingFrameRef.current.then(() => engine?.close?.()).catch(() => {});
+    trackedHandsRef.current = [];
+    return closing;
+  }
+
+  async function startCamera(deviceId = selectedDeviceId) {
+    const request = ++cameraRequestRef.current;
+    setStarting(true);
     setStatus("Loading the two-hand AI tracker...");
     try {
+      await releaseCamera();
+      if (request !== cameraRequestRef.current) return;
+      setStarted(false);
+      processHandGestures([]);
       demoRef.current = false;
       setDemoMode(false);
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera access requires HTTPS or localhost and a supported browser");
       await loadMediaPipe();
+      if (request !== cameraRequestRef.current) return;
       if (!window.Hands) throw new Error("The hand tracker could not load");
-
-      streamRef.current?.getTracks?.().forEach((track) => track.stop());
-      await handsEngineRef.current?.close?.();
 
       const hands = new window.Hands({ locateFile: (file) => `${ASSET_URL}/${file}` });
       hands.setOptions({
@@ -178,7 +199,9 @@ export function App() {
         minDetectionConfidence: 0.68,
         minTrackingConfidence: 0.62,
       });
-      hands.onResults(handleHandResults);
+      hands.onResults((results) => {
+        if (request === cameraRequestRef.current && !demoRef.current) handleHandResults(results);
+      });
       handsEngineRef.current = hands;
 
       setStatus("Waiting for camera permission...");
@@ -187,34 +210,42 @@ export function App() {
           width: { ideal: 1280 },
           height: { ideal: 720 },
           facingMode: "user",
-          ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {}),
+          ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
         },
         audio: false,
       });
-
+      if (request !== cameraRequestRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       const video = videoRef.current;
       video.srcObject = stream;
-      await new Promise((resolve) => {
-        if (video.readyState >= 1) resolve();
-        else video.onloadedmetadata = resolve;
-      });
       await video.play();
+      if (request !== cameraRequestRef.current) return;
       await refreshDevices();
+      if (request !== cameraRequestRef.current) return;
 
       startedRef.current = true;
       setStarted(true);
       resetPortal();
       setStatus("One left pinch creates the portal — right pinch transforms");
     } catch (error) {
-      startedRef.current = false;
+      if (request !== cameraRequestRef.current) return;
+      await releaseCamera();
+      if (request !== cameraRequestRef.current) return;
       setStarted(false);
       setStatus(`Camera unavailable: ${error.message}`);
+    } finally {
+      if (request === cameraRequestRef.current) setStarting(false);
     }
   }
 
   function startDemo() {
-    streamRef.current?.getTracks?.().forEach((track) => track.stop());
+    cameraRequestRef.current += 1;
+    releaseCamera();
+    setStarting(false);
+    processHandGestures([]);
     demoRef.current = true;
     startedRef.current = true;
     trackedHandsRef.current = [];
@@ -386,7 +417,7 @@ export function App() {
 
   async function refreshDevices() {
     if (!navigator.mediaDevices?.enumerateDevices) return;
-    const list = await navigator.mediaDevices.enumerateDevices();
+    const list = await navigator.mediaDevices.enumerateDevices().catch(() => []);
     const cameras = list.filter((device) => device.kind === "videoinput");
     setDevices(cameras);
     if (!selectedDeviceId && cameras[0]?.deviceId) setSelectedDeviceId(cameras[0].deviceId);
@@ -487,7 +518,11 @@ export function App() {
             {!demoMode && devices.length > 1 && (
               <label title="Select camera">
                 <SwitchCamera size={17} />
-                <select value={selectedDeviceId} onChange={(event) => setSelectedDeviceId(event.target.value)}>
+                <select value={selectedDeviceId} disabled={starting} onChange={(event) => {
+                  const deviceId = event.target.value;
+                  setSelectedDeviceId(deviceId);
+                  startCamera(deviceId);
+                }}>
                   {devices.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${index + 1}`}</option>)}
                 </select>
               </label>
@@ -509,7 +544,7 @@ export function App() {
           <h1>DRAW A PORTAL.<br /><em>SUMMON THE IMPOSSIBLE.</em></h1>
           <p>One left-hand pinch creates the portal. A right-hand pinch launches each 3D object in its own way before it dissolves into dust.</p>
           <div className="launchActions">
-            <button type="button" className="primaryAction" onClick={startCamera}><Camera size={20} /><span>START CAMERA</span><ChevronRight size={18} /></button>
+            <button type="button" className="primaryAction" disabled={starting} onClick={() => startCamera()}><Camera size={20} /><span>{starting ? "STARTING CAMERA..." : "START CAMERA"}</span><ChevronRight size={18} /></button>
             <button type="button" className="secondaryAction" onClick={startDemo}><MousePointer2 size={18} /><span>TRY MOUSE DEMO</span></button>
           </div>
           <div className="launchModels">
@@ -534,24 +569,4 @@ export function App() {
       )}
     </main>
   );
-}
-
-async function loadMediaPipe() {
-  const existing = document.querySelector(`script[src="${SCRIPT_URL}"]`);
-  if (existing) {
-    if (window.Hands) return;
-    await new Promise((resolve, reject) => {
-      existing.addEventListener("load", resolve, { once: true });
-      existing.addEventListener("error", reject, { once: true });
-    });
-    return;
-  }
-  await new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = SCRIPT_URL;
-    script.crossOrigin = "anonymous";
-    script.onload = resolve;
-    script.onerror = () => reject(new Error("MediaPipe could not load. Check your connection."));
-    document.head.appendChild(script);
-  });
 }
