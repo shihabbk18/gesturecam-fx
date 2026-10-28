@@ -4,7 +4,9 @@ GestureCam FX is a real-time augmented-reality hand-gesture experience. One left
 
 ![GestureCam FX AI Portal Lab](docs/gesturecam-portal.png)
 
-**[Launch the live experience](https://shihabbk18.github.io/PORTFOLIO-/gesturecam-fx/)**
+**[Launch the live experience](https://shihabbk18.github.io/gesturecam-fx/)**
+
+The [original demo address](https://shihabbk18.github.io/PORTFOLIO-/gesturecam-fx/) remains available as a compatibility deployment.
 
 ## The experience
 
@@ -70,7 +72,7 @@ cd frontend
 npm run build
 ```
 
-The production site is generated in `frontend/dist`. The included GitHub Actions workflow verifies every production build, while the live demo is served from the portfolio site.
+The production site is generated in `frontend/dist`. GitHub Actions installs locked dependencies, builds the app, runs lint and regression tests, and deploys successful pushes to `master` or `main` to this repository's GitHub Pages site. Pull requests run verification without publishing.
 
 ## Verify changes
 

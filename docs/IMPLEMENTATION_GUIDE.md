@@ -1,47 +1,38 @@
-# Implementation Guide
+# GestureCam FX implementation guide
 
-## Phase 1: Baseline MVP
+## Run and verify
 
-1. Run the backend and frontend locally.
-2. Paste text into the scanner and confirm the result panel updates.
-3. Upload a TXT, Markdown, PDF, PNG, JPG, or WEBP file.
-4. Download the PDF report from the result panel.
-5. Use the history section to revisit earlier scans.
+Use Node.js 24 or newer. From `frontend`, run:
 
-## Phase 2: Improve Text Detection
+```sh
+npm ci
+npm run lint
+npm test
+npm run build
+npm run dev
+```
 
-Add detector classes behind `TextDetector.analyze()`:
+The live app is frontend-only. No Python server, API credentials, or database is required. `backend/`, `render.yaml`, and the unused scanner components are historical AI-detector scaffolding, separate from the portal lab.
 
-- Zero-shot classifier: use `facebook/bart-large-mnli` or a modern NLI model.
-- Perplexity detector: compare perplexity under a small language model and normalize by language.
-- Fine-tuned classifier: train RoBERTa/DeBERTa on a labeled AI-vs-human dataset.
-- Stylometry: keep the current burstiness, entropy, repetition, and marker signals as explainability features.
+## Runtime
 
-The final score should be a weighted ensemble with calibration on a validation set.
+- `src/pages/App.jsx` owns camera acquisition, cancellation, device switching, gesture state, and pointer/keyboard controls.
+- `src/lib/mediapipe.js` loads a pinned MediaPipe Hands release, shares concurrent requests, and allows retry after download errors or timeouts.
+- `src/lib/scene.js` draws the camera and HUD and computes normalized pinch distances.
+- `src/lib/three-portal.js` creates procedural models, renders WebGL, and animates transitions.
 
-## Phase 3: Improve Image Detection
+Camera access requires HTTPS or localhost and browser permission. Frames remain in the browser. Left-hand pinches create a portal, and right-hand pinches switch models. Mouse demo mode works without camera access.
 
-Add detector classes behind `ImageDetector.analyze()`:
+## Deployment
 
-- CLIP or ResNet classifier fine-tuned on real-vs-generated images.
-- Metadata/provenance checks with EXIF and C2PA.
-- Third-party API integrations for Hive, Illuminarty, or Truepic.
-- OCR pipeline that routes screenshot text into the text detector.
+The `Verify and deploy GestureCam FX` GitHub Actions workflow runs the production build, lint, and regression tests. Successful pushes to `master` or `main` publish `frontend/dist` to:
 
-## Phase 4: Production Hardening
+https://shihabbk18.github.io/gesturecam-fx/
 
-- Replace in-memory results with Postgres.
-- Add Redis caching for repeated scans.
-- Add file size validation and malware scanning.
-- Add API rate limits.
-- Add auth with Clerk, Auth.js, or Auth0.
-- Add structured logs and tracing.
-- Add CI that runs backend tests and frontend builds.
+GitHub Pages must use **GitHub Actions** as its build source. Pull requests verify the app without deploying. Vite's relative asset base supports deployment at a subpath.
 
-## Suggested Metrics
+The original `/PORTFOLIO-/gesturecam-fx/` URL is a separate compatibility deployment pinned to a tested source commit. Its revision is configured in the `shihabbk18/PORTFOLIO-` repository.
 
-- Text AUROC and F1 by language.
-- False-positive rate on human essays and non-native English writing.
-- Image AUROC by generator family.
-- Calibration error for confidence scores.
-- Latency p50 and p95 by file type.
+## Regression checks
+
+Automated tests cover camera switching, permission/playback failures, late camera streams after demo entry or unmount, and failed/stalled tracker downloads. Browser checks should additionally cover WebGL rendering, mouse portal creation, model cycling, screenshots, and real two-hand tracking with camera permission.
